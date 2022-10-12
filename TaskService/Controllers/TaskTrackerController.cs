@@ -1,17 +1,20 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace TaskService.Controllers
 {
 	[ApiController]
 	[Route("[controller]")]
-	public class DefaultController : ControllerBase
+	[Authorize]
+	public class TaskTrackerController : ControllerBase
 	{
-		public DefaultController()
+		public TaskTrackerController()
 		{
 			
 		}
 
 		[HttpGet(Name = "DefaultGet")]
+		[Authorize]
 		public async Task<string> GetAsync()
 		{
 			return await Task.FromResult("default");
