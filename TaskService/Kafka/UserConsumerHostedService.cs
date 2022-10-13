@@ -29,32 +29,35 @@ namespace TaskService.Kafka
 				AutoOffsetReset = AutoOffsetReset.Earliest
 			};
 
-			try
+			Task.Run(async () =>
 			{
-				using var consumerBuilder = new ConsumerBuilder<Ignore, string>(config).Build();
-				consumerBuilder.Subscribe(Configuration.GetSection("ApplicationUserConsumer")["Topic"]);
-				var cancelToken = new CancellationTokenSource();
-
 				try
 				{
-					while (true)
+					using var consumerBuilder = new ConsumerBuilder<Ignore, string>(config).Build();
+					consumerBuilder.Subscribe(Configuration.GetSection("ApplicationUserConsumer")["Topic"]);
+					var cancelToken = new CancellationTokenSource();
+
+					try
 					{
-						var consumer = consumerBuilder.Consume(cancelToken.Token);
-						var appUser = JsonSerializer.Deserialize<ApplicationUserProcessed>(consumer.Message.Value);
+						while (true)
+						{
+							var consumer = consumerBuilder.Consume(cancelToken.Token);
+							var appUser = JsonSerializer.Deserialize<ApplicationUserProcessed>(consumer.Message.Value);
 
-						_userManager.AddApplicationUserAsync(appUser).Wait();
+							_userManager.AddApplicationUserAsync(appUser).Wait();
 
+						}
+					}
+					catch (OperationCanceledException)
+					{
+						consumerBuilder.Close();
 					}
 				}
-				catch (OperationCanceledException)
+				catch (Exception ex)
 				{
-					consumerBuilder.Close();
+					System.Diagnostics.Debug.WriteLine(ex.Message);
 				}
-			}
-			catch (Exception ex)
-			{
-				System.Diagnostics.Debug.WriteLine(ex.Message);
-			}
+			});
 
 			return Task.CompletedTask;
 		}

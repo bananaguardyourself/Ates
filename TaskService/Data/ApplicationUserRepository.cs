@@ -24,5 +24,11 @@ namespace TaskService.Data
 			using var cnn = SimpleDbConnection();
 			return await cnn.QueryAsync<ApplicationUserEntity>(@"SELECT * FROM public.applicationusers;");
 		}
+
+		public async Task<IEnumerable<ApplicationUserEntity>> GetApplicationUsersByIdAsync(Guid publicid)
+		{
+			using var cnn = SimpleDbConnection();
+			return await cnn.QueryAsync<ApplicationUserEntity>(@"SELECT * FROM public.applicationusers where publicid = @publicid;", publicid);
+		}
 	}
 }

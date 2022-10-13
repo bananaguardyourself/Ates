@@ -2,6 +2,7 @@ using Contracts.Settings;
 using DataAccess;
 using DataAccess.Interfaces;
 using IdentityServer4.AccessTokenValidation;
+using Kafka;
 using Microsoft.OpenApi.Models;
 using TaskService.Business;
 using TaskService.Data;
@@ -13,7 +14,10 @@ var identityAuthorityUrl = "https://localhost:5001";
 // Add services to the container.
 builder.Services.AddSingleton<IHostedService, UserConsumerHostedService>();
 builder.Services.AddSingleton<ApplicationUserRepository>();
+builder.Services.AddSingleton<TaskRepository>();
 builder.Services.AddSingleton<ApplicationUserManager>();
+builder.Services.AddSingleton<TaskTrackerManager>();
+builder.Services.AddSingleton<KafkaProducer>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(

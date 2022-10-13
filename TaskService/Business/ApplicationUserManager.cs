@@ -31,5 +31,10 @@ namespace TaskService.Business
 				System.Diagnostics.Debug.WriteLine(ex.Message);
 			}
 		}
+
+		public async Task<ApplicationUserEntity> GetUsersByPublicId(Guid publicId)
+		{
+			return (await _userRepository.GetApplicationUsersByIdAsync(publicId)).Single();			
+		}
 	}
 }
