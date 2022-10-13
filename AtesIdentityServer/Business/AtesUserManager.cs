@@ -1,6 +1,7 @@
 ﻿using AtesIdentityServer.Models;
 using Kafka;
 using Microsoft.AspNetCore.Identity;
+using System.Text.Json;
 
 namespace AtesIdentityServer.Business
 {
@@ -34,7 +35,9 @@ namespace AtesIdentityServer.Business
 				throw new Exception(string.Join(",", result.Errors.Select(e=>e.Description).ToList()));
 			}
 
-			await _kafkaProducer.ProduceMessage("testtopic", "test message");
+			string message = JsonSerializer.Serialize(user.ToStream());
+
+			await _kafkaProducer.ProduceMessage("auth-stream", message);
 		}
 	}
 }
