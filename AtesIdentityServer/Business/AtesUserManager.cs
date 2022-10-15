@@ -37,7 +37,7 @@ namespace AtesIdentityServer.Business
 
 			string message = JsonSerializer.Serialize(user.ToStream());
 
-			await _kafkaProducer.ProduceMessage("auth-stream", message);
+			await _kafkaProducer.ProduceMessage("users-stream", message);
 		}
 	}
 }

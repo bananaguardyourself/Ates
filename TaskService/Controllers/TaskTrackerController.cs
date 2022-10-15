@@ -44,7 +44,7 @@ namespace TaskService.Controllers
 		[ProducesResponseType(typeof(TaskEntity), (int)HttpStatusCode.Created)]
 		public async Task<IActionResult> CreateTaskASync(string name, string description)
 		{
-			var task = await _taskTrackerManager.CreateTasksAsync(name, description);
+			var task = await _taskTrackerManager.AddTaskAsync(name, description);
 
 			return Created("", task);
 		}

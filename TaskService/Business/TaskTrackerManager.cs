@@ -45,12 +45,12 @@ namespace TaskService.Business
 			{
 				EventName = "TaskUpdated",
 				PublicId = userTask.PublicId,
-				UserId = userTask.UserId,
+				UserId = userTask.PublicUserId,
 				TaskDescription = userTask.TaskDescription,
 				TaskName = userTask.TaskName,
 				TaskStatus = userTask.TaskStatus,
 			});
-			await _kafkaProducer.ProduceMessage("tasktracker-stream", message);
+			await _kafkaProducer.ProduceMessage("task-stream", message);
 
 
 			// be message
@@ -58,14 +58,14 @@ namespace TaskService.Business
 			{
 				EventName = "TaskClosed",
 				PublicId = userTask.PublicId,
-				UserId = userTask.UserId
+				UserId = userTask.PublicUserId
 			});
-			await _kafkaProducer.ProduceMessage("tasktracker", beMessage);
+			await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
 
 			return true;
 		}
 
-		public async Task<TaskEntity> CreateTasksAsync(string name, string description)
+		public async Task<TaskEntity> AddTaskAsync(string name, string description)
 		{
 			var users = await _userRepository.GetApplicationUsersAsync();
 
@@ -93,12 +93,12 @@ namespace TaskService.Business
 			{
 				EventName = "TaskCreated",
 				PublicId = taskEntity.PublicId,
-				UserId = taskEntity.UserId,
+				UserId = taskEntity.PublicUserId,
 				TaskDescription = taskEntity.TaskDescription,
 				TaskName = taskEntity.TaskName,
 				TaskStatus = taskEntity.TaskStatus,
 			});
-			await _kafkaProducer.ProduceMessage("tasktracker-stream", message);
+			await _kafkaProducer.ProduceMessage("task-stream", message);
 
 
 			// be message
@@ -106,9 +106,9 @@ namespace TaskService.Business
 			{
 				EventName = "TaskAdded",
 				PublicId = taskEntity.PublicId,
-				UserId = taskEntity.UserId
+				UserId = taskEntity.PublicUserId
 			});
-			await _kafkaProducer.ProduceMessage("tasktracker", beMessage);
+			await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
 
 			return taskEntity;
 		}
@@ -134,7 +134,7 @@ namespace TaskService.Business
 			{
 				foreach (var task in tasks)
 				{
-					task.UserId = usersList[random.Next(usersToAssign.Count())].PublicId;
+					task.PublicUserId = usersList[random.Next(usersToAssign.Count())].PublicId;
 				}
 
 				var updatedCount = await _taskRepository.UpdateTaskAsync(tasks);
@@ -152,21 +152,21 @@ namespace TaskService.Business
 				{
 					EventName = "TaskUpdated",
 					PublicId = task.PublicId,
-					UserId = task.UserId,
+					UserId = task.PublicUserId,
 					TaskDescription = task.TaskDescription,
 					TaskName = task.TaskName,
 					TaskStatus = task.TaskStatus,
 				});
-				await _kafkaProducer.ProduceMessage("tasktracker-stream", message);
+				await _kafkaProducer.ProduceMessage("task-stream", message);
 
 				// be message
 				string beMessage = JsonSerializer.Serialize(new TaskBusinessEvent
 				{
 					EventName = "TaskAssigned",
 					PublicId = task.PublicId,
-					UserId = task.UserId
+					UserId = task.PublicUserId
 				});
-				await _kafkaProducer.ProduceMessage("tasktracker", beMessage);
+				await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
 			}
 
 			return true;

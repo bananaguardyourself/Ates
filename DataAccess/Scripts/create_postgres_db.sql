@@ -12,7 +12,7 @@ CREATE TABLE public.tasks
 (
     id int NOT NULL GENERATED AS IDENTITY,
     publicid uuid not null,
-    userid uuid not null,
+    publicuserid uuid not null,
     taskname text not null,
     taskdescription text not null,
     taskstatus int not null,
