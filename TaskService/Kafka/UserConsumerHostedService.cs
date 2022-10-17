@@ -1,13 +1,22 @@
 ﻿using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
-using System.Diagnostics;
+using System.Text.Json;
+using TaskService.Business;
+using TaskService.Models.Kafka;
 
 namespace TaskService.Kafka
 {
 	public class UserConsumerHostedService : IHostedService
 	{
-		public UserConsumerHostedService(IConfiguration configuration) => Configuration = configuration;
+		private readonly ApplicationUserManager _userManager;
+
+		public UserConsumerHostedService(
+			IConfiguration configuration,
+			ApplicationUserManager userManager
+			)
+		{
+			Configuration = configuration;
+			_userManager = userManager;
+		}
 
 		public IConfiguration Configuration { get; }
 
@@ -15,16 +24,17 @@ namespace TaskService.Kafka
 		{
 			var config = new ConsumerConfig
 			{
-				GroupId =  Configuration.GetSection("Kafka")["GroupId"],
-				BootstrapServers = Configuration.GetSection("Kafka")["BootstrapServers"],
+				GroupId = Configuration.GetSection("ApplicationUserConsumer")["GroupId"],
+				BootstrapServers = Configuration.GetSection("ApplicationUserConsumer")["BootstrapServers"],
 				AutoOffsetReset = AutoOffsetReset.Earliest
 			};
 
-			try
+			Task.Run(async () =>
 			{
-				using (var consumerBuilder = new ConsumerBuilder<Ignore, string>(config).Build())
+				try
 				{
-					consumerBuilder.Subscribe(Configuration.GetSection("Kafka")["Topic"]);
+					using var consumerBuilder = new ConsumerBuilder<Ignore, string>(config).Build();
+					consumerBuilder.Subscribe(Configuration.GetSection("ApplicationUserConsumer")["Topic"]);
 					var cancelToken = new CancellationTokenSource();
 
 					try
@@ -32,9 +42,10 @@ namespace TaskService.Kafka
 						while (true)
 						{
 							var consumer = consumerBuilder.Consume(cancelToken.Token);
+							var appUser = JsonSerializer.Deserialize<ApplicationUserProcessed>(consumer.Message.Value);
 
-							//var orderRequest = JsonSerializer.Deserialize<OrderProcessingRequest>(consumer.Message.Value);
-							//Debug.WriteLine($"Processing Order Id:	{orderRequest.OrderId}");
+							_userManager.AddApplicationUserAsync(appUser).Wait();
+
 						}
 					}
 					catch (OperationCanceledException)
@@ -42,11 +53,11 @@ namespace TaskService.Kafka
 						consumerBuilder.Close();
 					}
 				}
-			}
-			catch (Exception ex)
-			{
-				System.Diagnostics.Debug.WriteLine(ex.Message);
-			}
+				catch (Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine(ex.Message);
+				}
+			});
 
 			return Task.CompletedTask;
 		}
