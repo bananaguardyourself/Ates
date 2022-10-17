@@ -29,11 +29,7 @@ namespace TaskService.Controllers
 		[ProducesResponseType(typeof(IEnumerable<TaskEntity>), (int)HttpStatusCode.OK)]		
 		public async Task<IActionResult> GetUserTasksAsync()
 		{
-			var id = User.FindFirstValue("PublicId");
-
-			var claims = ClaimsPrincipal.Current?.Identities.First().Claims.ToList();
-			var publicId = claims?.FirstOrDefault(x => x.Type.Equals("PublicId", StringComparison.OrdinalIgnoreCase))?.Value;
-			var userPublicId = Guid.Parse(publicId);
+			var userPublicId = Guid.Parse(User.FindFirstValue("PublicId"));
 
 			var resources = await _taskTrackerManager.GetUserTasksAsync(userPublicId);
 
@@ -53,9 +49,7 @@ namespace TaskService.Controllers
 		[ProducesResponseType((int)HttpStatusCode.NoContent)]
 		public async Task<IActionResult> CloseTaskAsync(Guid taskId)
 		{
-			var claims = ClaimsPrincipal.Current?.Identities.First().Claims.ToList();
-			var publicId = claims?.FirstOrDefault(x => x.Type.Equals("PublicId", StringComparison.OrdinalIgnoreCase))?.Value;
-			var userPublicId = Guid.Parse(publicId);
+			var userPublicId = Guid.Parse(User.FindFirstValue("PublicId"));
 
 			var result = await _taskTrackerManager.CloseTasksAsync(userPublicId, taskId);
 			if (!result)
@@ -68,9 +62,7 @@ namespace TaskService.Controllers
 		[ProducesResponseType((int)HttpStatusCode.OK)]
 		public async Task<IActionResult> AssignTasksAsync()
 		{
-			var claims = ClaimsPrincipal.Current?.Identities.First().Claims.ToList();
-			var publicId = claims?.FirstOrDefault(x => x.Type.Equals("PublicId", StringComparison.OrdinalIgnoreCase))?.Value;
-			var userPublicId = Guid.Parse(publicId);
+			var userPublicId = Guid.Parse(User.FindFirstValue("PublicId"));
 
 			var user = await _applicationUserManager.GetUsersByPublicId(userPublicId);
 
