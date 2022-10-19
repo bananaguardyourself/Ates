@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kafka\Kafka.csproj" />
+    <ProjectReference Include="..\SchemaRegistry\SchemaRegistry.csproj" />
   </ItemGroup>
 
 </Project>
