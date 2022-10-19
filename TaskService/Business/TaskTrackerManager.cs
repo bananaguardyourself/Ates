@@ -15,10 +15,12 @@ namespace TaskService.Business
 
 		public TaskTrackerManager(
 			TaskRepository taskRepository,
-			ApplicationUserRepository userRepository)
+			ApplicationUserRepository userRepository,
+			KafkaProducer kafkaProducer)
 		{
-			_taskRepository = taskRepository;
-			_userRepository = userRepository;
+			_taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
+			_userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+			_kafkaProducer =  kafkaProducer ?? throw new ArgumentNullException(nameof(kafkaProducer));
 		}
 
 		public async Task<IEnumerable<TaskEntity>> GetUserTasksAsync(Guid userId)

@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace TaskService.Middleware
+namespace AccountingService.Middleware
 {
 	public class ExceptionLogger
 	{
