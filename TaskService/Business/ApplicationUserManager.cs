@@ -17,14 +17,26 @@ namespace TaskService.Business
 		{
 			var userEntity = new ApplicationUserEntity
 			{
-				PublicId = user.PublicId,
-				Role = user.Role,
-				UserName = user.UserName
+				PublicId = user.Data.PublicId,
+				Role = user.Data.Role,
+				UserName = user.Data.UserName
 			};
 
 			try
 			{
 				await _userRepository.InsertApplicationUserAsync(new List<ApplicationUserEntity> { userEntity });
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine(ex.Message);
+			}
+		}
+
+		public async Task AddDeadLetterAsync(string message)
+		{
+			try
+			{
+				await _userRepository.InsertDeadLetterAsync(message, DateTime.Now);
 			}
 			catch (Exception ex)
 			{

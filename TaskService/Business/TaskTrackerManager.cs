@@ -4,6 +4,9 @@ using System.Transactions;
 using Kafka;
 using System.Text.Json;
 using TaskService.Models.Kafka;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+using SchemaRegistry;
 
 namespace TaskService.Business
 {
@@ -28,46 +31,7 @@ namespace TaskService.Business
 			return await _taskRepository.GetTasksByUserIdAsync(userId);
 		}
 
-		public async Task<bool> CloseTasksAsync(Guid userId, Guid taskId)
-		{
-			var userTask = (await _taskRepository.GetTasksByTaskAndUserIdAsync(userId, taskId)).SingleOrDefault();
-
-			if (userTask is null || userTask.TaskStatus == TaskStatusType.Closed)
-				return false;
-
-			userTask.TaskStatus = TaskStatusType.Closed;
-
-			var updatedCount = await _taskRepository.UpdateTaskAsync(new List<TaskEntity> { userTask });
-
-			if (updatedCount < 1)
-				return false;
-
-			// cud messaage
-			string message = JsonSerializer.Serialize(new TaskProcessed
-			{
-				EventName = "TaskUpdated",
-				PublicId = userTask.PublicId,
-				UserId = userTask.PublicUserId,
-				TaskDescription = userTask.TaskDescription,
-				TaskName = userTask.TaskName,
-				TaskStatus = userTask.TaskStatus,
-			});
-			await _kafkaProducer.ProduceMessage("task-stream", message);
-
-
-			// be message
-			string beMessage = JsonSerializer.Serialize(new TaskBusinessEvent
-			{
-				EventName = "TaskClosed",
-				PublicId = userTask.PublicId,
-				UserId = userTask.PublicUserId
-			});
-			await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
-
-			return true;
-		}
-
-		public async Task<TaskEntity> AddTaskAsync(string name, string description)
+		public async Task<TaskEntity> AddTaskAsync(string title, string jiraId, string description)
 		{
 			var users = await _userRepository.GetApplicationUsersAsync();
 
@@ -82,7 +46,7 @@ namespace TaskService.Business
 			var random = new Random();
 			var userId = usersToAssign.ToList()[random.Next(usersToAssign.Count())].PublicId;
 
-			var taskEntity = new TaskEntity(description, name, userId);
+			var taskEntity = new TaskEntity(description, title, jiraId, userId);
 			var insertedCount = await _taskRepository.InsertTasksAsync(new List<TaskEntity> { taskEntity });
 
 			if (insertedCount != 1)
@@ -91,26 +55,53 @@ namespace TaskService.Business
 			}
 
 			// cud messaage
-			string message = JsonSerializer.Serialize(new TaskProcessed
+			string message = JsonConvert.SerializeObject(new TaskProcessed
 			{
 				EventName = "TaskCreated",
-				PublicId = taskEntity.PublicId,
-				UserId = taskEntity.PublicUserId,
-				TaskDescription = taskEntity.TaskDescription,
-				TaskName = taskEntity.TaskName,
-				TaskStatus = taskEntity.TaskStatus,
+				EventId = Guid.NewGuid(),
+				Producer = "TaskTrackerService",
+				EventTime = DateTime.Now,
+				EventVersion = 2,
+				Data = new TaskProcessedData
+				{
+					PublicId = taskEntity.PublicId,
+					UserId = taskEntity.PublicUserId,
+					TaskDescription = taskEntity.TaskDescription,
+					TaskTitle = taskEntity.TaskTitle,
+					TaskJiraId = taskEntity.TaskJiraId,
+					TaskStatus = taskEntity.TaskStatus
+				}
 			});
-			await _kafkaProducer.ProduceMessage("task-stream", message);
 
+			var valid = JsonSchemaRegistry.Validate(JObject.Parse(message), "TaskCreated", 2);
+
+			if (valid)
+				await _kafkaProducer.ProduceMessage("task-stream", message);
+			else
+				//we can save message for example, or log this error and alert or use some other way of handling
+				throw new Exception("Invalid message schema");
 
 			// be message
-			string beMessage = JsonSerializer.Serialize(new TaskBusinessEvent
+			string beMessage = JsonConvert.SerializeObject(new TaskBusinessEvent
 			{
 				EventName = "TaskAdded",
-				PublicId = taskEntity.PublicId,
-				UserId = taskEntity.PublicUserId
+				EventId = Guid.NewGuid(),
+				Producer = "TaskTrackerService",
+				EventTime = DateTime.Now,
+				EventVersion = 2,
+				Data = new TaskBusinessEventData
+				{
+					PublicId = taskEntity.PublicId,
+					UserId = taskEntity.PublicUserId
+				}
 			});
-			await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
+
+			var bevalid = JsonSchemaRegistry.Validate(JObject.Parse(beMessage), "TaskAdded", 2);
+
+			if (bevalid)
+				await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
+			else
+				throw new Exception("Invalid message schema");
 
 			return taskEntity;
 		}
@@ -150,26 +141,118 @@ namespace TaskService.Business
 			foreach (var task in tasks)
 			{
 				// cud messaage
-				string message = JsonSerializer.Serialize(new TaskProcessed
+				string message = JsonConvert.SerializeObject(new TaskProcessed
 				{
 					EventName = "TaskUpdated",
-					PublicId = task.PublicId,
-					UserId = task.PublicUserId,
-					TaskDescription = task.TaskDescription,
-					TaskName = task.TaskName,
-					TaskStatus = task.TaskStatus,
+					EventId = Guid.NewGuid(),
+					Producer = "TaskTrackerService",
+					EventTime = DateTime.Now,
+					EventVersion = 2,
+					Data = new TaskProcessedData
+					{
+						PublicId = task.PublicId,
+						UserId = task.PublicUserId,
+						TaskDescription = task.TaskDescription,
+						TaskTitle = task.TaskTitle,
+						TaskJiraId = task.TaskJiraId,
+						TaskStatus = task.TaskStatus
+					}
 				});
-				await _kafkaProducer.ProduceMessage("task-stream", message);
+
+				var valid = JsonSchemaRegistry.Validate(JObject.Parse(message), "TaskUpdated", 2);
+
+				if (valid)
+					await _kafkaProducer.ProduceMessage("task-stream", message);
+				else
+					throw new Exception("Invalid message schema");
 
 				// be message
-				string beMessage = JsonSerializer.Serialize(new TaskBusinessEvent
+				string beMessage = JsonConvert.SerializeObject(new TaskBusinessEvent
 				{
 					EventName = "TaskAssigned",
-					PublicId = task.PublicId,
-					UserId = task.PublicUserId
+					EventId = Guid.NewGuid(),
+					Producer = "TaskTrackerService",
+					EventTime = DateTime.Now,
+					EventVersion = 2,
+					Data = new TaskBusinessEventData
+					{
+						PublicId = task.PublicId,
+						UserId = task.PublicUserId
+					}
 				});
-				await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
+
+				var bevalid = JsonSchemaRegistry.Validate(JObject.Parse(beMessage), "TaskAssigned", 2);
+
+				if (bevalid)
+					await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
+				else
+					throw new Exception("Invalid message schema");
 			}
+
+			return true;
+		}
+
+		public async Task<bool> CloseTasksAsync(Guid userId, Guid taskId)
+		{
+			var userTask = (await _taskRepository.GetTasksByTaskAndUserIdAsync(userId, taskId)).SingleOrDefault();
+
+			if (userTask is null || userTask.TaskStatus == TaskStatusType.Closed)
+				return false;
+
+			userTask.TaskStatus = TaskStatusType.Closed;
+
+			var updatedCount = await _taskRepository.UpdateTaskAsync(new List<TaskEntity> { userTask });
+
+			if (updatedCount < 1)
+				return false;
+
+			// cud messaage
+			string message = JsonConvert.SerializeObject(new TaskProcessed
+			{
+				EventName = "TaskUpdated",
+				EventId = Guid.NewGuid(),
+				Producer = "TaskTrackerService",
+				EventTime = DateTime.Now,
+				EventVersion = 2,
+				Data = new TaskProcessedData
+				{
+					PublicId = userTask.PublicId,
+					UserId = userTask.PublicUserId,
+					TaskDescription = userTask.TaskDescription,
+					TaskTitle = userTask.TaskTitle,
+					TaskJiraId = userTask.TaskJiraId,
+					TaskStatus = userTask.TaskStatus
+				}
+			});
+
+			var valid = JsonSchemaRegistry.Validate(JObject.Parse(message), "TaskUpdated", 2);
+
+			if (valid)
+				await _kafkaProducer.ProduceMessage("task-stream", message);
+			else
+				throw new Exception("Invalid message schema");
+
+			// be message
+			string beMessage = JsonConvert.SerializeObject(new TaskBusinessEvent
+			{
+				EventName = "TaskClosed",
+				EventId = Guid.NewGuid(),
+				Producer = "TaskTrackerService",
+				EventTime = DateTime.Now,
+				EventVersion = 2,
+				Data = new TaskBusinessEventData
+				{
+					PublicId = userTask.PublicId,
+					UserId = userTask.PublicUserId
+				}
+			});
+
+			var bevalid = JsonSchemaRegistry.Validate(JObject.Parse(beMessage), "TaskClosed", 2);
+
+			if (bevalid)
+				await _kafkaProducer.ProduceMessage("task-lifecycle", beMessage);
+			else
+				throw new Exception("Invalid message schema");
 
 			return true;
 		}

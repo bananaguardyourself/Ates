@@ -1,7 +1,9 @@
 ﻿using AtesIdentityServer.Models;
 using Kafka;
 using Microsoft.AspNetCore.Identity;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using SchemaRegistry;
 
 namespace AtesIdentityServer.Business
 {
@@ -32,12 +34,17 @@ namespace AtesIdentityServer.Business
 
 			if (!result.Succeeded)
 			{
-				throw new Exception(string.Join(",", result.Errors.Select(e=>e.Description).ToList()));
+				throw new Exception(string.Join(",", result.Errors.Select(e => e.Description).ToList()));
 			}
 
-			string message = JsonSerializer.Serialize(user.ToStream());
+			string message = JsonConvert.SerializeObject(user.ToStream("RegisterUser"));
+			var valid = JsonSchemaRegistry.Validate(JObject.Parse(message), "RegisterUser", 2);
 
-			await _kafkaProducer.ProduceMessage("users-stream", message);
+			if (valid)
+				await _kafkaProducer.ProduceMessage("users-stream", message);
+			else
+				throw new Exception("Invalid message schema");
+
 		}
 	}
 }

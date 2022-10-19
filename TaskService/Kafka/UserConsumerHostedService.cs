@@ -1,5 +1,6 @@
 ﻿using Confluent.Kafka;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using TaskService.Business;
 using TaskService.Models.Kafka;
 
@@ -42,10 +43,17 @@ namespace TaskService.Kafka
 						while (true)
 						{
 							var consumer = consumerBuilder.Consume(cancelToken.Token);
-							var appUser = JsonSerializer.Deserialize<ApplicationUserProcessed>(consumer.Message.Value);
+							var messageJson = (JObject)JsonConvert.DeserializeObject(consumer.Message.Value);
 
-							_userManager.AddApplicationUserAsync(appUser).Wait();
-
+							if (messageJson != null && messageJson["EventVersion"]?.Values<string>().SingleOrDefault() == "2")
+							{
+								var appUser = JsonConvert.DeserializeObject<ApplicationUserProcessed>(consumer.Message.Value);
+								await _userManager.AddApplicationUserAsync(appUser).ConfigureAwait(false);
+							}
+							else
+							{
+								await _userManager.AddDeadLetterAsync(consumer.Message.Value).ConfigureAwait(false);
+							}
 						}
 					}
 					catch (OperationCanceledException)

@@ -21,8 +21,8 @@ namespace TaskService.Data
 
 			using var cnn = SimpleDbConnection();
 			return await cnn.ExecuteAsync(@"INSERT INTO public.tasks
-				( publicid, userid, taskname, taskdescription, taskstatus, lastupdated) VALUES 
-				( Publicid, Userid, TaskName, TaskDescription, TaskStatus, LastUpdated);", tasks);
+				( publicid, userid, tasktitle, taskjiraid, taskdescription, taskstatus, lastupdated) VALUES 
+				( Publicid, Userid, TaskTitle, TaskJiraId, TaskDescription, TaskStatus, LastUpdated);", tasks);
 		}
 
 		public async Task<IEnumerable<TaskEntity>> GetTasksByUserIdAsync(Guid userid)
