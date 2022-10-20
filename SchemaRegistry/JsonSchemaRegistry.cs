@@ -28,19 +28,23 @@ namespace SchemaRegistry
 				[2] = JSchema.Parse(TaskCUDV2Schema),
 				}
 			},
-			{ "TaskClosed", new Dictionary<int, JSchema>() {
-				[1] = JSchema.Parse(TaskEventV1Schema),
-				[2] = JSchema.Parse(TaskEventV2Schema),
-				}
-			},
 			{ "TaskAdded", new Dictionary<int, JSchema>() {
 				[1] = JSchema.Parse(TaskEventV1Schema),
 				[2] = JSchema.Parse(TaskEventV2Schema),
 				}
 			},
+			{ "TaskClosed", new Dictionary<int, JSchema>() {
+				[1] = JSchema.Parse(TaskEventV1Schema),
+				[2] = JSchema.Parse(TaskEventV2Schema),
+				}
+			},			
 			{ "TaskAssigned", new Dictionary<int, JSchema>() {
 				[1] = JSchema.Parse(TaskEventV1Schema),
 				[2] = JSchema.Parse(TaskEventV2Schema),
+				}
+			},
+			{ "TransactionCreated", new Dictionary<int, JSchema>() {
+				[1] = JSchema.Parse(TransactionCUDV1Schema),
 				}
 			},
 		};
@@ -113,7 +117,7 @@ namespace SchemaRegistry
 				'publicId': {
 				  'type': 'string'
 				},
-				'userId': {
+				'publicUserId': {
 				  'type': 'string'
 				},
 				'taskName': {
@@ -154,7 +158,7 @@ namespace SchemaRegistry
 					'publicId': {
 					  'type': 'string'
 					},
-					'userId': {
+					'publicUserId': {
 					  'type': 'string'
 					},
 					'title': {
@@ -171,7 +175,7 @@ namespace SchemaRegistry
 					}
 				  }
 				}
-  }
+			}
 		}";
 
 		private const string TaskEventV1Schema = @"{
@@ -184,7 +188,7 @@ namespace SchemaRegistry
 				'publicId': {
 				  'type': 'string'
 				},
-				'userId': {
+				'publicUserId': {
 				  'type': 'string'
 				}
 			  }
@@ -215,12 +219,60 @@ namespace SchemaRegistry
 					'publicId': {
 					  'type': 'string'
 					},
-					'userId': {
+					'publicUserId': {
 					  'type': 'string'
 					}
 				  }
 				}
 			  }
+		}";
+
+		private const string TransactionCUDV1Schema = @"{
+			'description': 'A task CUD event',
+			'type': 'object',
+			'properties': {
+				'eventId': {
+				  'type': 'string'
+				},
+				'eventVersion': {
+				  'type': 'integer'
+				},
+				'eventName': {
+				  'type': 'string'
+				},
+				'eventTime': {
+				  'type': 'string'
+				},
+				'producer': {
+				  'type': 'string'
+				},
+				'data': {
+				  'type': 'object',
+				  'properties': {
+					'publicId': {
+					  'type': 'string'
+					},
+					'publicUserId': {
+					  'type': 'string'
+					},
+					'publicTaskId': {
+					  'type': 'string'
+					},
+					'transactionAction': {
+					  'type': 'string'
+					},
+					'increase': {
+					  'type': 'integer'
+					},
+					'decrease': {
+					  'type': 'integer'
+					},
+					'createdAt': {
+					  'type': 'string'
+					}
+				  }
+				}
+			}
 		}";
 	}
 }

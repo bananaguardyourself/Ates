@@ -2,7 +2,6 @@
 using TaskService.Data;
 using System.Transactions;
 using Kafka;
-using System.Text.Json;
 using TaskService.Models.Kafka;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
@@ -65,7 +64,7 @@ namespace TaskService.Business
 				Data = new TaskProcessedData
 				{
 					PublicId = taskEntity.PublicId,
-					UserId = taskEntity.PublicUserId,
+					PublicUserId = taskEntity.PublicUserId,
 					TaskDescription = taskEntity.TaskDescription,
 					TaskTitle = taskEntity.TaskTitle,
 					TaskJiraId = taskEntity.TaskJiraId,
@@ -151,7 +150,7 @@ namespace TaskService.Business
 					Data = new TaskProcessedData
 					{
 						PublicId = task.PublicId,
-						UserId = task.PublicUserId,
+						PublicUserId = task.PublicUserId,
 						TaskDescription = task.TaskDescription,
 						TaskTitle = task.TaskTitle,
 						TaskJiraId = task.TaskJiraId,
@@ -217,7 +216,7 @@ namespace TaskService.Business
 				Data = new TaskProcessedData
 				{
 					PublicId = userTask.PublicId,
-					UserId = userTask.PublicUserId,
+					PublicUserId = userTask.PublicUserId,
 					TaskDescription = userTask.TaskDescription,
 					TaskTitle = userTask.TaskTitle,
 					TaskJiraId = userTask.TaskJiraId,

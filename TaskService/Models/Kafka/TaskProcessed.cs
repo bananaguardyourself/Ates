@@ -15,7 +15,7 @@ namespace TaskService.Models.Kafka
 	public class TaskProcessedData
 	{
 		public Guid PublicId { get; set; }
-		public Guid UserId { get; set; }
+		public Guid PublicUserId { get; set; }
 		public string TaskTitle { get; set; }
 		public string TaskJiraId { get; set; }
 		public string TaskDescription { get; set; }

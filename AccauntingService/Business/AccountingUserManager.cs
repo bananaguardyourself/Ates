@@ -17,14 +17,16 @@ namespace AccountingService.Business
 		{
 			var userEntity = new AccountingUserEntity
 			{
-				PublicId = user.PublicId,
-				Role = user.Role,
-				UserName = user.UserName
+				PublicId = user.Data.PublicId,
+				Role = user.Data.Role,
+				UserName = user.Data.UserName,
+				Balance = 0,
+				LastUpdated = DateTime.Now
 			};
 
 			try
 			{
-				await _userRepository.InsertApplicationUserAsync(new List<AccountingUserEntity> { userEntity });
+				await _userRepository.InsertAccountingUserAsync(new List<AccountingUserEntity> { userEntity });
 			}
 			catch (Exception ex)
 			{
@@ -32,9 +34,23 @@ namespace AccountingService.Business
 			}
 		}
 
-		public async Task<AccountingUserEntity> GetUsersByPublicId(Guid publicId)
+		public async Task AddDeadLetterAsync(string message)
 		{
-			return (await _userRepository.GetApplicationUsersByIdAsync(publicId)).Single();			
+			try
+			{
+				await _userRepository.InsertDeadLetterAsync(message, DateTime.Now);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine(ex.Message);
+			}
 		}
+
+		public async Task<AccountingUserEntity> GetUserByPublicId(Guid publicId)
+		{
+			return (await _userRepository.GetAccountingUsersByIdAsync(publicId)).Single();
+		}
+
+
 	}
 }

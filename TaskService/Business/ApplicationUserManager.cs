@@ -44,7 +44,7 @@ namespace TaskService.Business
 			}
 		}
 
-		public async Task<ApplicationUserEntity> GetUsersByPublicId(Guid publicId)
+		public async Task<ApplicationUserEntity> GetUserByPublicId(Guid publicId)
 		{
 			return (await _userRepository.GetApplicationUsersByIdAsync(publicId)).Single();			
 		}

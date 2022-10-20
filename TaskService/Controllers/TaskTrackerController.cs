@@ -70,7 +70,7 @@ namespace TaskService.Controllers
 		{
 			var userPublicId = Guid.Parse(User.FindFirstValue("PublicId"));
 
-			var user = await _applicationUserManager.GetUsersByPublicId(userPublicId);
+			var user = await _applicationUserManager.GetUserByPublicId(userPublicId);
 
 			if (string.Compare(user.Role, Roles.Manager, true) != 0 && string.Compare(user.Role, Roles.Admin, true) != 0)
 				return Unauthorized();

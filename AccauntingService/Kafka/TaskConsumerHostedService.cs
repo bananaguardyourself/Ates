@@ -6,17 +6,17 @@ using Newtonsoft.Json;
 
 namespace AccountingService.Kafka
 {
-	public class UserConsumerHostedService : IHostedService
+	public class TaskConsumerHostedService : IHostedService
 	{
-		private readonly AccountingUserManager _userManager;
+		private readonly AccountingTaskManager _taskManager;
 
-		public UserConsumerHostedService(
+		public TaskConsumerHostedService(
 			IConfiguration configuration,
-			AccountingUserManager userManager
+			AccountingTaskManager taskManager
 			)
 		{
 			Configuration = configuration;
-			_userManager = userManager;
+			_taskManager = taskManager;
 		}
 
 		public IConfiguration Configuration { get; }
@@ -25,8 +25,8 @@ namespace AccountingService.Kafka
 		{
 			var config = new ConsumerConfig
 			{
-				GroupId = Configuration.GetSection("AccountingUserConsumer")["GroupId"],
-				BootstrapServers = Configuration.GetSection("AccountingUserConsumer")["BootstrapServers"],
+				GroupId = Configuration.GetSection("AccountingTaskCUDConsumer")["GroupId"],
+				BootstrapServers = Configuration.GetSection("AccountingTaskCUDConsumer")["BootstrapServers"],
 				AutoOffsetReset = AutoOffsetReset.Earliest
 			};
 
@@ -35,7 +35,7 @@ namespace AccountingService.Kafka
 				try
 				{
 					using var consumerBuilder = new ConsumerBuilder<Ignore, string>(config).Build();
-					consumerBuilder.Subscribe(Configuration.GetSection("AccountingUserConsumer")["Topic"]);
+					consumerBuilder.Subscribe(Configuration.GetSection("AccountingTaskCUDConsumer")["Topic"]);
 					var cancelToken = new CancellationTokenSource();
 
 					try
@@ -47,12 +47,26 @@ namespace AccountingService.Kafka
 
 							if (messageJson != null && messageJson["EventVersion"]?.Values<string>().SingleOrDefault() == "2")
 							{
-								var accUser = JsonConvert.DeserializeObject<AccountingUserProcessed>(consumer.Message.Value);
-								await _userManager.AddAccountingUserAsync(accUser).ConfigureAwait(false);
+								var task = JsonConvert.DeserializeObject<TaskProcessed>(consumer.Message.Value);
+
+								switch (task.EventName)
+								{
+									case "TaskCreated":
+										await _taskManager.CreateTaskAsync(task).ConfigureAwait(false);
+										break;
+									case "TaskUpdated":
+										await _taskManager.UpdateTaskAsync(task).ConfigureAwait(false);
+										break;
+									default:
+										await _taskManager.AddDeadLetterAsync(consumer.Message.Value).ConfigureAwait(false);
+										break;
+								}
+
+								
 							}
 							else
 							{
-								await _userManager.AddDeadLetterAsync(consumer.Message.Value).ConfigureAwait(false);
+								await _taskManager.AddDeadLetterAsync(consumer.Message.Value).ConfigureAwait(false);
 							}
 						}
 					}

@@ -34,7 +34,7 @@ namespace TaskService.Data
 		public async Task<int> InsertDeadLetterAsync(string message, DateTime timestanmp)
 		{
 			using var cnn = SimpleDbConnection();
-			return await cnn.ExecuteAsync(@"INSERT INTO applicationusers
+			return await cnn.ExecuteAsync(@"INSERT INTO userdeadletters
 				( message, timereceived) VALUES 
 				( @message, @timestanmp);", new { message, timestanmp });
 		}

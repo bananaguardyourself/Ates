@@ -21,8 +21,8 @@ namespace TaskService.Data
 
 			using var cnn = SimpleDbConnection();
 			return await cnn.ExecuteAsync(@"INSERT INTO public.tasks
-				( publicid, userid, tasktitle, taskjiraid, taskdescription, taskstatus, lastupdated) VALUES 
-				( Publicid, Userid, TaskTitle, TaskJiraId, TaskDescription, TaskStatus, LastUpdated);", tasks);
+				( publicid, publicuserid, tasktitle, taskjiraid, taskdescription, taskstatus, lastupdated) VALUES 
+				( Publicid, PublicUserid, TaskTitle, TaskJiraId, TaskDescription, TaskStatus, LastUpdated);", tasks);
 		}
 
 		public async Task<IEnumerable<TaskEntity>> GetTasksByUserIdAsync(Guid userid)
@@ -48,7 +48,7 @@ namespace TaskService.Data
 			var updateTimestamp = DateTime.Now;
 			using var cnn = SimpleDbConnection();
 			return await cnn.ExecuteAsync(@"UPDATE public.tasks
-				set (userid = @Userid, taskname = @TaskName, taskdescription = @TaskDescription, taskstatus = @TaskStatus, lastupdated = @updateTimestamp
+				set (publicid = @PublicId, tasktitle = @TaskTitle, taskjiraid = @TaskJiraId, taskdescription = @TaskDescription, taskstatus = @TaskStatus, lastupdated = @updateTimestamp
 				where publicid = @PublicId and lastupdated = @LastUpdated;", new { tasks, updateTimestamp });
 		}
 	}
