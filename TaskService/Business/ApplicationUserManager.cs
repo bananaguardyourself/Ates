@@ -17,9 +17,9 @@ namespace TaskService.Business
 		{
 			var userEntity = new ApplicationUserEntity
 			{
-				PublicId = user.PublicId,
-				Role = user.Role,
-				UserName = user.UserName
+				PublicId = user.Data.PublicId,
+				Role = user.Data.Role,
+				UserName = user.Data.UserName
 			};
 
 			try
@@ -32,7 +32,19 @@ namespace TaskService.Business
 			}
 		}
 
-		public async Task<ApplicationUserEntity> GetUsersByPublicId(Guid publicId)
+		public async Task AddDeadLetterAsync(string message)
+		{
+			try
+			{
+				await _userRepository.InsertDeadLetterAsync(message, DateTime.Now);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine(ex.Message);
+			}
+		}
+
+		public async Task<ApplicationUserEntity> GetUserByPublicId(Guid publicId)
 		{
 			return (await _userRepository.GetApplicationUsersByIdAsync(publicId)).Single();			
 		}

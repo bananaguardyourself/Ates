@@ -30,5 +30,13 @@ namespace TaskService.Data
 			using var cnn = SimpleDbConnection();
 			return await cnn.QueryAsync<ApplicationUserEntity>(@"SELECT * FROM public.applicationusers where publicid = @publicid;", publicid);
 		}
+
+		public async Task<int> InsertDeadLetterAsync(string message, DateTime timestanmp)
+		{
+			using var cnn = SimpleDbConnection();
+			return await cnn.ExecuteAsync(@"INSERT INTO userdeadletters
+				( message, timereceived) VALUES 
+				( @message, @timestanmp);", new { message, timestanmp });
+		}
 	}
 }

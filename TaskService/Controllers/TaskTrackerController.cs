@@ -14,7 +14,7 @@ namespace TaskService.Controllers
 	public class TaskTrackerController : ControllerBase
 	{
 		private readonly ApplicationUserManager _applicationUserManager;
-		private readonly TaskTrackerManager _taskTrackerManager;		
+		private readonly TaskTrackerManager _taskTrackerManager;
 
 		public TaskTrackerController(
 			ApplicationUserManager applicationUserManager,
@@ -26,7 +26,7 @@ namespace TaskService.Controllers
 		}
 
 		[HttpGet(Name = "GetTasksByUserIdAsync")]
-		[ProducesResponseType(typeof(IEnumerable<TaskEntity>), (int)HttpStatusCode.OK)]		
+		[ProducesResponseType(typeof(IEnumerable<TaskEntity>), (int)HttpStatusCode.OK)]
 		public async Task<IActionResult> GetUserTasksAsync()
 		{
 			var userPublicId = Guid.Parse(User.FindFirstValue("PublicId"));
@@ -38,9 +38,15 @@ namespace TaskService.Controllers
 
 		[HttpPost("~/create")]
 		[ProducesResponseType(typeof(TaskEntity), (int)HttpStatusCode.Created)]
-		public async Task<IActionResult> CreateTaskASync(string name, string description)
+		[ProducesResponseType((int)HttpStatusCode.BadRequest)]
+		public async Task<IActionResult> CreateTaskASync(string title, string jiraId, string description)
 		{
-			var task = await _taskTrackerManager.AddTaskAsync(name, description);
+			if (title.Contains('[') || title.Contains(']'))
+			{
+				return BadRequest("Jira id in the title is prohibited");
+			}
+
+			var task = await _taskTrackerManager.AddTaskAsync(title, jiraId, description);
 
 			return Created("", task);
 		}
@@ -58,13 +64,13 @@ namespace TaskService.Controllers
 			return NoContent();
 		}
 
-		[HttpPost("~/assign")]		
+		[HttpPost("~/assign")]
 		[ProducesResponseType((int)HttpStatusCode.OK)]
 		public async Task<IActionResult> AssignTasksAsync()
 		{
 			var userPublicId = Guid.Parse(User.FindFirstValue("PublicId"));
 
-			var user = await _applicationUserManager.GetUsersByPublicId(userPublicId);
+			var user = await _applicationUserManager.GetUserByPublicId(userPublicId);
 
 			if (string.Compare(user.Role, Roles.Manager, true) != 0 && string.Compare(user.Role, Roles.Admin, true) != 0)
 				return Unauthorized();
